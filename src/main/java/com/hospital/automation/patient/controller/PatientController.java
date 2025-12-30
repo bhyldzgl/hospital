@@ -6,6 +6,7 @@ import com.hospital.automation.patient.dto.PatientUpdateRequest;
 import com.hospital.automation.patient.service.PatientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +33,15 @@ public class PatientController {
     @GetMapping
     public List<PatientResponse> getAll() {
         return patientService.getAll();
+    }
+
+    @GetMapping("/page")
+    public Page<PatientResponse> getPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "lastName,asc") String sort
+    ) {
+        return patientService.getPage(page, size, sort);
     }
 
     @PutMapping("/{id}")

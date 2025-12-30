@@ -6,6 +6,7 @@ import com.hospital.automation.doctor.dto.DoctorUpdateRequest;
 import com.hospital.automation.doctor.service.DoctorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +33,15 @@ public class DoctorController {
     @GetMapping
     public List<DoctorResponse> getAll() {
         return doctorService.getAll();
+    }
+
+    @GetMapping("/page")
+    public Page<DoctorResponse> getPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "fullName,asc") String sort
+    ) {
+        return doctorService.getPage(page, size, sort);
     }
 
     @PutMapping("/{id}")

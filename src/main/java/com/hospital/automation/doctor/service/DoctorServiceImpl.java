@@ -1,5 +1,6 @@
 package com.hospital.automation.doctor.service;
 
+import com.hospital.automation.common.exception.ConflictException;
 import com.hospital.automation.common.exception.ResourceNotFoundException;
 import com.hospital.automation.doctor.dto.DoctorCreateRequest;
 import com.hospital.automation.doctor.dto.DoctorResponse;
@@ -7,6 +8,7 @@ import com.hospital.automation.doctor.dto.DoctorUpdateRequest;
 import com.hospital.automation.doctor.entity.Doctor;
 import com.hospital.automation.doctor.repository.DoctorRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,10 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     public DoctorResponse create(DoctorCreateRequest request) {
+        if (doctorRepository.existsByEmail(request.email())) {
+            throw new ConflictException("Doctor email already exists: " + request.email());
+        }
+
         Doctor doctor = Doctor.builder()
                 .fullName(request.fullName())
                 .specialty(request.specialty())
@@ -47,9 +53,20 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<DoctorResponse> getPage(int page, int size, String sort) {
+        Pageable pageable = PageRequest.of(page, size, parseSort(sort));
+        return doctorRepository.findAll(pageable).map(this::toResponse);
+    }
+
+    @Override
     public DoctorResponse update(Long id, DoctorUpdateRequest request) {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found: " + id));
+
+        if (doctorRepository.existsByEmailAndIdNot(request.email(), id)) {
+            throw new ConflictException("Doctor email already exists: " + request.email());
+        }
 
         doctor.setFullName(request.fullName());
         doctor.setSpecialty(request.specialty());
@@ -65,6 +82,19 @@ public class DoctorServiceImpl implements DoctorService {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found: " + id));
         doctorRepository.delete(doctor);
+    }
+
+    private Sort parseSort(String sort) {
+        if (sort == null || sort.isBlank()) {
+            return Sort.by(Sort.Direction.ASC, "fullName");
+        }
+        String[] parts = sort.split(",");
+        String field = parts[0].trim();
+        Sort.Direction direction = Sort.Direction.ASC;
+        if (parts.length > 1) {
+            direction = "desc".equalsIgnoreCase(parts[1].trim()) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        }
+        return Sort.by(direction, field);
     }
 
     private DoctorResponse toResponse(Doctor d) {

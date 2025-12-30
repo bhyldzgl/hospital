@@ -1,6 +1,8 @@
 package com.hospital.automation.appointment.repository;
 
 import com.hospital.automation.appointment.entity.Appointment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,5 +35,21 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("patientId") Long patientId,
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime
+    );
+
+    @Query("""
+            select a
+            from Appointment a
+            where a.doctor.id = coalesce(:doctorId, a.doctor.id)
+              and a.patient.id = coalesce(:patientId, a.patient.id)
+              and a.startTime >= coalesce(:from, a.startTime)
+              and a.endTime <= coalesce(:to, a.endTime)
+            """)
+    Page<Appointment> search(
+            @Param("doctorId") Long doctorId,
+            @Param("patientId") Long patientId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            Pageable pageable
     );
 }

@@ -5,9 +5,12 @@ import com.hospital.automation.appointment.dto.AppointmentResponse;
 import com.hospital.automation.appointment.service.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -28,9 +31,24 @@ public class AppointmentController {
         return appointmentService.getById(id);
     }
 
+    // eski liste (kalsın)
     @GetMapping
     public List<AppointmentResponse> getAll() {
         return appointmentService.getAll();
+    }
+
+    // yeni sayfalı filtreli liste
+    @GetMapping("/page")
+    public Page<AppointmentResponse> search(
+            @RequestParam(required = false) Long doctorId,
+            @RequestParam(required = false) Long patientId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "startTime,desc") String sort
+    ) {
+        return appointmentService.search(doctorId, patientId, from, to, page, size, sort);
     }
 
     @DeleteMapping("/{id}")

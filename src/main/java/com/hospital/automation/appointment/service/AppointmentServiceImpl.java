@@ -11,6 +11,7 @@ import com.hospital.automation.doctor.repository.DoctorRepository;
 import com.hospital.automation.patient.entity.Patient;
 import com.hospital.automation.patient.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +37,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         Doctor doctor = doctorRepository.findById(request.doctorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found: " + request.doctorId()));
 
-        // Doktor çakışma kontrolü
         boolean doctorOverlap = appointmentRepository.existsOverlappingForDoctor(
                 doctor.getId(),
                 request.startTime(),
@@ -46,7 +46,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new ConflictException("Doctor has another appointment overlapping with the given time range.");
         }
 
-        // Hasta çakışma kontrolü
         boolean patientOverlap = appointmentRepository.existsOverlappingForPatient(
                 patient.getId(),
                 request.startTime(),
@@ -83,6 +82,14 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<AppointmentResponse> search(Long doctorId, Long patientId, LocalDateTime from, LocalDateTime to, int page, int size, String sort) {
+        Pageable pageable = PageRequest.of(page, size, parseSort(sort));
+        Page<Appointment> result = appointmentRepository.search(doctorId, patientId, from, to, pageable);
+        return result.map(this::toResponse);
+    }
+
+    @Override
     public void delete(Long id) {
         Appointment appt = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment not found: " + id));
@@ -96,6 +103,23 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (!start.isBefore(end)) {
             throw new ConflictException("startTime must be before endTime.");
         }
+    }
+
+    private Sort parseSort(String sort) {
+        // default: startTime,desc
+        if (sort == null || sort.isBlank()) {
+            return Sort.by(Sort.Direction.DESC, "startTime");
+        }
+
+        // format: field,asc|desc
+        String[] parts = sort.split(",");
+        String field = parts[0].trim();
+        Sort.Direction direction = Sort.Direction.DESC;
+
+        if (parts.length > 1) {
+            direction = "asc".equalsIgnoreCase(parts[1].trim()) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        }
+        return Sort.by(direction, field);
     }
 
     private AppointmentResponse toResponse(Appointment a) {

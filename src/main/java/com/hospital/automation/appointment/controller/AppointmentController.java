@@ -2,6 +2,7 @@ package com.hospital.automation.appointment.controller;
 
 import com.hospital.automation.appointment.dto.AppointmentCreateRequest;
 import com.hospital.automation.appointment.dto.AppointmentResponse;
+import com.hospital.automation.appointment.dto.AppointmentUpdateRequest;
 import com.hospital.automation.appointment.service.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,13 +32,11 @@ public class AppointmentController {
         return appointmentService.getById(id);
     }
 
-    // eski liste (kalsın)
     @GetMapping
     public List<AppointmentResponse> getAll() {
         return appointmentService.getAll();
     }
 
-    // yeni sayfalı filtreli liste
     @GetMapping("/page")
     public Page<AppointmentResponse> search(
             @RequestParam(required = false) Long doctorId,
@@ -49,6 +48,11 @@ public class AppointmentController {
             @RequestParam(defaultValue = "startTime,desc") String sort
     ) {
         return appointmentService.search(doctorId, patientId, from, to, page, size, sort);
+    }
+
+    @PutMapping("/{id}")
+    public AppointmentResponse update(@PathVariable Long id, @Valid @RequestBody AppointmentUpdateRequest request) {
+        return appointmentService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

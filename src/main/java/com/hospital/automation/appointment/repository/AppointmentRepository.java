@@ -38,6 +38,37 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("endTime") LocalDateTime endTime
     );
 
+    // UPDATE için: kendi id'sini hariç tut
+    @Query("""
+            select count(a) > 0
+            from Appointment a
+            where a.doctor.id = :doctorId
+              and a.id <> :appointmentId
+              and a.startTime < :endTime
+              and a.endTime > :startTime
+            """)
+    boolean existsOverlappingForDoctorExcludingAppointment(
+            @Param("doctorId") Long doctorId,
+            @Param("appointmentId") Long appointmentId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime
+    );
+
+    @Query("""
+            select count(a) > 0
+            from Appointment a
+            where a.patient.id = :patientId
+              and a.id <> :appointmentId
+              and a.startTime < :endTime
+              and a.endTime > :startTime
+            """)
+    boolean existsOverlappingForPatientExcludingAppointment(
+            @Param("patientId") Long patientId,
+            @Param("appointmentId") Long appointmentId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime
+    );
+
     @Query("""
             select a
             from Appointment a

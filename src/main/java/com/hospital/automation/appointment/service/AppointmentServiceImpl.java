@@ -2,6 +2,7 @@ package com.hospital.automation.appointment.service;
 
 import com.hospital.automation.appointment.dto.AppointmentCreateRequest;
 import com.hospital.automation.appointment.dto.AppointmentResponse;
+import com.hospital.automation.appointment.dto.AppointmentUpdateRequest;
 import com.hospital.automation.appointment.entity.Appointment;
 import com.hospital.automation.appointment.repository.AppointmentRepository;
 import com.hospital.automation.common.exception.ConflictException;
@@ -90,6 +91,49 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    public AppointmentResponse update(Long id, AppointmentUpdateRequest request) {
+        validateTimeRange(request.startTime(), request.endTime());
+
+        Appointment existing = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found: " + id));
+
+        Patient patient = patientRepository.findById(request.patientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found: " + request.patientId()));
+
+        Doctor doctor = doctorRepository.findById(request.doctorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found: " + request.doctorId()));
+
+        boolean doctorOverlap = appointmentRepository.existsOverlappingForDoctorExcludingAppointment(
+                doctor.getId(),
+                id,
+                request.startTime(),
+                request.endTime()
+        );
+        if (doctorOverlap) {
+            throw new ConflictException("Doctor has another appointment overlapping with the given time range.");
+        }
+
+        boolean patientOverlap = appointmentRepository.existsOverlappingForPatientExcludingAppointment(
+                patient.getId(),
+                id,
+                request.startTime(),
+                request.endTime()
+        );
+        if (patientOverlap) {
+            throw new ConflictException("Patient has another appointment overlapping with the given time range.");
+        }
+
+        existing.setPatient(patient);
+        existing.setDoctor(doctor);
+        existing.setStartTime(request.startTime());
+        existing.setEndTime(request.endTime());
+        existing.setNotes(request.notes());
+
+        Appointment saved = appointmentRepository.save(existing);
+        return toResponse(saved);
+    }
+
+    @Override
     public void delete(Long id) {
         Appointment appt = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment not found: " + id));
@@ -106,12 +150,10 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private Sort parseSort(String sort) {
-        // default: startTime,desc
         if (sort == null || sort.isBlank()) {
             return Sort.by(Sort.Direction.DESC, "startTime");
         }
 
-        // format: field,asc|desc
         String[] parts = sort.split(",");
         String field = parts[0].trim();
         Sort.Direction direction = Sort.Direction.DESC;

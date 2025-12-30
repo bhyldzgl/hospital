@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
@@ -51,5 +52,19 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to,
             Pageable pageable
+    );
+
+    @Query("""
+            select a
+            from Appointment a
+            where a.doctor.id = :doctorId
+              and a.startTime < :dayEnd
+              and a.endTime > :dayStart
+            order by a.startTime asc
+            """)
+    List<Appointment> findDoctorAppointmentsInRange(
+            @Param("doctorId") Long doctorId,
+            @Param("dayStart") LocalDateTime dayStart,
+            @Param("dayEnd") LocalDateTime dayEnd
     );
 }

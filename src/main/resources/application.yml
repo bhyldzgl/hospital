@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: hospital-automation
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hospitaldb
+    username: hospital
+    password: hospital
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  jackson:
+    time-zone: Europe/Istanbul
+
+server:
+  port: 9094
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    org.hibernate.SQL: debug
